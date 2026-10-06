@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FarmLink 360</title>
+<style>
+  :root {
+    --green: #2e7d32; --green-dark: #1b5e20; --green-light: #e8f5e9;
+    --orange: #f57c00; --red: #c62828; --bg: #f7f9f7; --card: #ffffff;
+    --text: #263238; --muted: #607d8b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: var(--bg); color: var(--text); }
+  header { background: var(--green); color: #fff; padding: 18px 24px; display:flex; align-items:center; justify-content:space-between; }
+  header h1 { font-size: 22px; }
+  header .tagline { font-size: 12px; opacity: .85; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  .card { background: var(--card); border-radius: 10px; padding: 18px; margin-bottom: 18px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  h2 { color: var(--green-dark); margin-bottom: 12px; }
+  h3 { color: var(--green-dark); margin: 10px 0 8px; }
+  button { background: var(--green); color: #fff; border: none; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  button:hover { background: var(--green-dark); }
+  button.secondary { background: #fff; color: var(--green); border: 1px solid var(--green); }
+  button.danger { background: var(--red); }
+  button.orange { background: var(--orange); }
+  input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid #cfd8dc; border-radius: 8px; margin-bottom: 10px; font-size: 14px; }
+  label { font-weight: 600; font-size: 13px; display:block; margin-bottom: 4px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .stat { background: var(--green-light); border-radius: 10px; padding: 16px; text-align: center; }
+  .stat .num { font-size: 26px; font-weight: 800; color: var(--green-dark); }
+  .pill { display:inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .pill.available { background:#c8e6c9; color:#1b5e20; }
+  .pill.coming { background:#fff3e0; color:#e65100; }
+  .pill.pending { background:#fff8e1; color:#f57f17; }
+  .pill.confirmed { background:#c8e6c9; color:#1b5e20; }
+  .pill.cancelled { background:#ffcdd2; color:#b71c1c; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align:left; padding: 9px 8px; border-bottom: 1px solid #eceff1; font-size: 14px; }
+  th { background: var(--green-light); color: var(--green-dark); }
+  .table-wrap { overflow-x: auto; margin-top: 10px; }
+  @media (max-width: 700px) {
+    header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .container { padding: 12px; }
+    .nav { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 6px; }
+    .nav button { white-space: nowrap; flex: 0 0 auto; }
+    .grid { grid-template-columns: 1fr; }
+    h2 { font-size: 18px; }
+    table { font-size: 13px; }
+  }
+  img.thumb { width: 80px; height: 80px; object-fit: contain; background:#f5f5f5; border-radius: 8px; }
+  .nav { display:flex; flex-direction:column; gap:8px; }
+  .nav button { background:#fff; color: var(--green); border:1px solid var(--green); text-align:left; padding:12px 16px; }
+  .nav button.active { background: var(--green); color:#fff; }
+  .layout { display:flex; gap:20px; align-items:flex-start; }
+  .sidebar { width:210px; flex-shrink:0; background:var(--card); border-radius:10px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,.08); position:sticky; top:20px; }
+  .main-content { flex:1; min-width:0; }
+  @media (max-width: 800px) {
+    .layout { flex-direction:column; }
+    .sidebar { width:100%; position:static; }
+    .nav { flex-direction:row; overflow-x:auto; }
+    .nav button { white-space:nowrap; flex:0 0 auto; text-align:center; }
+  }
+  .hidden { display:none !important; }
+  .modal-bg { position:fixed; inset:0; background: rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:50; }
+  .modal { background:#fff; border-radius: 12px; padding: 22px; width: 92%; max-width: 520px; max-height: 90vh; overflow-y:auto; }
+  .msg { border-left: 4px solid var(--green); background:#f1f8e9; padding:10px; border-radius: 6px; margin-bottom: 8px; }
+  .msg.from-me { border-left-color: var(--orange); background:#fff8e1; }
+  .star { color: #f9a825; }
+  .badge { background: var(--green-light); color: var(--green-dark); padding: 2px 8px; border-radius: 6px; font-size: 12px; }
+  .profit { color: var(--green); font-weight: 800; } .loss { color: var(--red); font-weight: 800; }
+  img.icon { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; vertical-align: middle; margin-right: 10px; }
+  .footer { text-align:center; color: var(--muted); font-size: 12px; padding: 20px; }
+  .bar-chart { display:flex; flex-direction:column; gap:8px; }
+  .bar-row { display:flex; align-items:center; gap:10px; }
+  .bar-label { width:120px; font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar { height:22px; border-radius:6px; min-width:2px; }
+  .bar-value { font-weight:700; font-size:13px; }
+
+  .hero { background: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url('images/hero.jpg') center/cover no-repeat; border-radius:14px; padding:70px 30px; text-align:center; color:#fff; text-shadow:0 2px 6px rgba(0,0,0,.7); margin-bottom:20px; }
+  .hero h2 { color:#fff; font-size:32px; margin-bottom:8px; }
+  .role-grid { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .role-card { background:#fff; border-radius:14px; padding:20px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+  .role-card img { width:100%; height:180px; object-fit:cover; border-radius:10px; margin-bottom:12px; }
+  .role-card h3 { color:var(--green-dark); margin-bottom:8px; font-size:20px; }
+  .role-card p { color:var(--muted); margin-bottom:14px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1><img class="icon" src="images/farm.jpg" alt="" /> FarmLink 360</h1>
+    <div class="tagline">Connecting Farmers to Markets. Growing Opportunities.</div>
+  </div>
+  <div id="roleLabel"></div>
+</header>
+
+<div class="container">
+
+  <!-- LANDING -->
+  <div id="landing">
+    <div class="hero">
+      <h2>Welcome to FarmLink 360</h2>
+      <p>Connecting Farmers to Markets. Growing Opportunities.</p>
+    </div>
+    <h2 style="text-align:center;margin:20px 0">Choose how you want to use FarmLink 360</h2>
+    <div class="role-grid">
+      <div class="role-card">
+        <img src="images/farm.jpg" alt="Farmer" />
+        <h3>I'm a Farmer</h3>
+        <p>List produce, manage listings, farmer ledger, connect with buyers.</p>
+        <button onclick="openAuth('farmer')">Enter as Farmer</button>
+      </div>
+      <div class="role-card">
+        <img src="images/market.jpg" alt="Buyer" />
+        <h3>I'm a Buyer</h3>
+        <p>Browse produce, buy, book ahead, message farmers.</p>
+        <button onclick="openAuth('buyer')">Enter as Buyer</button>
+      </div>
+      <div class="role-card">
+        <img src="images/building.jpg" alt="Institution" />
+        <h3>Institution</h3>
+        <p>Schools, hotels, supermarkets & restaurants — bulk booking.</p>
+        <button onclick="openAuth('institution')">Enter as Institution</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARDS -->
+  <div id="dashboard" class="hidden">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="nav" id="navTabs"></div>
+      </aside>
+      <main class="main-content">
+
+    <!-- FARMER -->
+    <div id="farmerView" class="hidden">
+      <div id="f-dashboard" class="card">
+        <h2>Welcome back, Farmer!</h2>
+        <div class="grid">
+          <div class="stat"><div class="num" id="fActive">0</div>Active Listings</div>
+          <div class="stat"><div class="num" id="fMsgs">0</div>Messages</div>
+          <div class="stat"><div class="num" id="fBookings">0</div>Bookings</div>
+          <div class="stat"><div class="num" id="fRevenue">KSh 0</div>Est. Revenue</div>
+        </div>
+        <h3 style="margin-top:14px">Farm Analytics</h3>
+        <div class="grid">
+          <div class="card" style="min-height:220px"><h4>Crops by Income (pie)</h4><canvas id="cropChart" style="width:100%;height:220px"></canvas></div>
+          <div class="card" style="min-height:220px"><h4>Expenses Monthly (line)</h4><canvas id="expenseChart" style="width:100%;height:220px"></canvas></div>
+          <div class="card" style="min-height:220px"><h4>Products Sold (bar)</h4><canvas id="soldChart" style="width:100%;height:220px"></canvas></div>
+        </div>
+      </div>
+
+      <div id="f-products" class="card hidden">
+        <h2>My Products</h2>
+        <button onclick="openAddProduct()">+ Add New Product</button>
+        <div class="table-wrap"><table><thead><tr><th>Image</th><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="fProductRows"></tbody></table></div>
+      </div>
+
+      <div id="f-ledger" class="card hidden">
+        <h2><img class="icon" src="images/book.jpg" alt="" /> Farmer Ledger</h2>
+        <button class="orange" onclick="openLedgerEntry()">+ Add Entry (Income/Expense)</button>
+        <div class="grid" style="margin-top:12px">
+          <div class="stat"><div class="num" id="ledgerIncome">KSh 0</div>Total Earnings</div>
+          <div class="stat"><div class="num" id="ledgerExpense">KSh 0</div>Total Expenses</div>
+          <div class="stat"><div class="num" id="ledgerNet">KSh 0</div>Net (Profit/Loss)</div>
+        </div>
+        <h3>Entries</h3>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th></tr></thead>
+        <tbody id="ledgerRows"></tbody></table></div>
+      </div>
+
+      <div id="f-messages" class="card hidden">
+        <h2>Messages & Inquiries</h2>
+        <div id="fMessagesList"></div>
+      </div>
+
+      <div id="f-bookings" class="card hidden">
+        <h2>Bookings Received</h2>
+        <div class="table-wrap"><table><thead><tr><th>Product</th><th>Buyer/Institution</th><th>Qty</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="fBookingRows"></tbody></table></div>
+      </div>
+
+      <div id="f-savings" class="card hidden">
+        <h2>My Savings</h2>
+        <button class="orange" onclick="openSavingsEntry()">+ Add Saving</button>
+        <div class="grid" style="margin-top:12px">
+          <div class="stat"><div class="num" id="totalSavings">KSh 0</div>Total Savings</div>
+        </div>
+        <h3>Savings Entries</h3>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Name</th><th>Amount</th></tr></thead>
+        <tbody id="savingsRows"></tbody></table></div>
+      </div>
+
+      <div id="f-profile" class="card hidden">
+        <h2>My Profile</h2>
+        <label>Full Name</label><input id="fName" />
+        <label>Phone</label><input id="fPhone" />
+        <label>Email</label><input id="fEmail" />
+        <label>County</label><select id="fCounty"></select>
+        <label>Farm Description</label><textarea id="fDesc"></textarea>
+        <button onclick="saveProfile('farmer')">Save Changes</button>
+      </div>
+    </div>
+
+    <!-- BUYER -->
+    <div id="buyerView" class="hidden">
+      <div id="b-market" class="card">
+        <h2>Fresh Produce Marketplace</h2>
+        <div class="grid">
+          <div><label>Category</label><select id="bCategory" onchange="renderMarket()"><option value="">All Categories</option><option>Vegetables</option><option>Fruits</option><option>Grains</option><option>Dairy</option></select></div>
+          <div><label>Location</label><select id="bLocation" onchange="renderMarket()"><option value="">All Locations</option></select></div>
+        </div>
+        <div class="grid" id="marketGrid" style="margin-top:12px"></div>
+      </div>
+
+      <div id="b-favorites" class="card hidden"><h2>My Favorites</h2><div class="grid" id="favGrid"></div></div>
+      <div id="b-inquiries" class="card hidden"><h2>My Inquiries</h2><div id="bInquiriesList"></div></div>
+      <div id="b-bookings" class="card hidden"><h2>My Bookings</h2>
+        <div class="table-wrap"><table><thead><tr><th>Product</th><th>Qty</th><th>Date</th><th>Status</th></tr></thead><tbody id="bBookingRows"></tbody></table></div>
+      </div>
+      <div id="b-profile" class="card hidden">
+        <h2>My Profile</h2>
+        <label>Full Name</label><input id="bName" />
+        <label>Phone</label><input id="bPhone" />
+        <label>Email</label><input id="bEmail" />
+        <label>Delivery Location</label><select id="bCounty"></select>
+        <button onclick="saveProfile('buyer')">Save Changes</button>
+      </div>
+    </div>
+
+    <!-- INSTITUTION -->
+    <div id="institutionView" class="hidden">
+      <div id="i-book" class="card">
+        <h2>Bulk Produce Booking</h2>
+        <p>Institutions (schools, hotels, supermarkets, restaurants) can make prior bulk bookings.</p>
+        <label>Institution Name</label><input id="iName" placeholder="e.g. Green Valley School" />
+        <label>Institution Type</label><select id="iType"><option>School</option><option>Big Hotel</option><option>Supermarket</option><option>Restaurant</option><option>Other</option></select>
+        <label>Select Produce</label><select id="iProduct"></select>
+        <label>Quantity (kg)</label><input id="iQty" type="number" min="1" value="10" />
+        <label>Preferred Date</label><input id="iDate" type="date" />
+        <label>Phone Number (for payment prompt)</label><input id="iPhone" type="tel" placeholder="e.g. 0712345678" />
+        <button onclick="institutionBook()">Make Bulk Booking</button>
+      </div>
+      <div id="i-bookings" class="card hidden"><h2>My Bulk Bookings</h2>
+        <div class="table-wrap"><table><thead><tr><th>Produce</th><th>Qty (kg)</th><th>Date</th><th>Status</th></tr></thead><tbody id="iBookingRows"></tbody></table></div>
+      </div>
+      <div id="i-messages" class="card hidden"><h2>Messages to Farmers</h2><div id="iMessagesList"></div></div>
+      <div id="i-profile" class="card hidden">
+        <h2>Institution Profile</h2>
+        <label>Institution Name</label><input id="iProfileName" />
+        <label>Contact Person</label><input id="iProfilePerson" />
+        <label>Phone</label><input id="iProfilePhone" />
+        <label>Email</label><input id="iProfileEmail" />
+        <button onclick="saveProfile('institution')">Save Changes</button>
+      </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PRODUCT MODAL -->
+<div id="productModal" class="modal-bg hidden">
+  <div class="modal">
+    <h3 id="productModalTitle">Add New Product</h3>
+    <input type="hidden" id="editId" />
+    <label>Produce Name</label><input id="pName" />
+    <label>Category</label><select id="pCategory"><option>Vegetables</option><option>Fruits</option><option>Grains</option><option>Dairy</option></select>
+    <label>Price (KSh/kg)</label><input id="pPrice" type="number" />
+    <label>County</label><select id="pCounty"></select>
+    <label>Availability</label><select id="pAvail"><option>Available Now</option><option>Coming Soon</option></select>
+    <label>Upload Product Image (mobile camera / gallery upload)</label>
+    <input type="file" id="pImage" accept="image/*" capture="environment" />
+    <label>Description</label><textarea id="pDesc"></textarea>
+    <button onclick="addProduct()">Add Product</button>
+    <button class="secondary" onclick="closeModal('productModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- LEDGER MODAL -->
+<div id="ledgerModal" class="modal-bg hidden">
+  <div class="modal">
+    <h3>Add Ledger Entry</h3>
+    <label>Type</label><select id="lType"><option>Income</option><option>Expense</option></select>
+    <label>Description</label><input id="lDesc" placeholder="e.g. Sale of maize, Seeds purchase" />
+    <label>Amount (KSh)</label><input id="lAmount" type="number" />
+    <button onclick="addLedgerEntry()">Save</button>
+    <button class="secondary" onclick="closeModal('ledgerModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- SAVINGS MODAL -->
+<div id="savingsModal" class="modal-bg hidden">
+  <div class="modal">
+    <h3>Add Saving</h3>
+    <label>Savings Name</label><input id="sName" placeholder="e.g. Emergency Fund" />
+    <label>Amount (KSh)</label><input id="sAmount" type="number" />
+    <button onclick="addSavingsEntry()">Save</button>
+    <button class="secondary" onclick="closeModal('savingsModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- CONTACT/MESSAGE MODAL -->
+<div id="msgModal" class="modal-bg hidden">
+  <div class="modal">
+    <h3 id="msgTitle">Contact Farmer</h3>
+    <textarea id="msgText" placeholder="Type your message..."></textarea>
+    <button onclick="sendMessage()">Send Message</button>
+    <button class="secondary" onclick="closeModal('msgModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="authModal" class="modal-bg hidden">
+  <div class="modal">
+    <h3 id="authTitle">Login / Register</h3>
+    <label>Email</label><input id="authEmail" type="email" placeholder="e.g. name@gmail.com" />
+    <label>Password</label><input id="authPass" type="password" />
+    <button onclick="authLogin()">Login</button>
+    <button class="secondary" onclick="authRegister()">Register</button>
+    <button onclick="closeModal('authModal')">Cancel</button>
+    <p id="authMsg" style="margin-top:10px;color:#c62828"></p>
+  </div>
+</div>
+
+<div id="bookModal" class="modal-bg hidden">
+  <div class="modal">
+    <h3>Book / Buy Produce</h3>
+    <p id="bookProductName"></p>
+    <label>Quantity (kg)</label><input id="bkQty" type="number" min="1" value="1" />
+    <label>Date</label><input id="bkDate" type="date" />
+    <label>Your Phone Number (for payment prompt)</label><input id="bkPhone" type="tel" placeholder="e.g. 0712345678" />
+    <button onclick="buyerBook()">Confirm Booking</button>
+    <button class="secondary" onclick="buyerBuy()">Buy Now</button>
+    <button class="secondary" onclick="closeModal('bookModal')">Cancel</button>
+  </div>
+</div>
+
+<div class="footer">FarmLink 360 — Designed by Sir. Silvester | Daniel Juma | Faith Mwangi | Joy Kilonzo</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const COUNTIES = ["Mombasa County","Kwale County","Kilifi County","Tana River County","Lamu County","Taita Taveta County","Garissa County","Wajir County","Mandera County","Marsabit County","Isiolo County","Meru County","Tharaka-Nithi County","Embu County","Kitui County","Machakos County","Makueni County","Nyandarua County","Nyeri County","Kirinyaga County","Murang'a County","Kiambu County","Turkana County","West Pokot County","Samburu County","Trans-Nzoia County","Uasin Gishu County","Elgeyo-Marakwet County","Nandi County","Baringo County","Laikipia County","Nakuru County","Narok County","Kajiado County","Kericho County","Bomet County","Kakamega County","Vihiga County","Bungoma County","Busia County","Siaya County","Kisumu County","Homa Bay County","Migori County","Kisii County","Nyamira County","Nairobi County"];
+let currentRole = null;
+let msgContext = null; // {farmer, product}
+let bookContext = null; // product
+
+// ---------- storage helpers ----------
+const SUPABASE_URL = 'https://uocsayriobbiuvphoayy.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_mpoAtfOna4PFKNKLobxQng_vj352-gy';
+let sb = null;
+try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { console.warn('Supabase not available', e); }
+
+const store = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+
+const products = () => read('fl_products', []);
+const setProducts = v => { store('fl_products', v); syncTable('products', v, p => ({name:p.name,category:p.category,price:p.price,county:p.county,availability:p.availability,description:p.desc,image:p.image,farmer:p.farmer})); };
+const messages = () => read('fl_messages', []);
+const setMessages = v => { store('fl_messages', v); syncTable('messages', v, m => ({sender:m.from,receiver:m.to,text:m.text,date:m.date})); };
+const bookings = () => read('fl_bookings', []);
+const setBookings = v => { store('fl_bookings', v); syncTable('bookings', v, b => ({product:b.product,farmer:b.farmer,qty:b.qty,date:b.date,status:b.status,buyer:b.by,phone:b.phone})); };
+const ledger = () => read('fl_ledger', []);
+const setLedger = v => { store('fl_ledger', v); syncTable('ledger', v, e => ({date:e.date,type:e.type,description:e.desc,amount:e.amount})); };
+const savings = () => read('fl_savings', []);
+const setSavings = v => store('fl_savings', v);
+const favorites = () => read('fl_favorites', []);
+const setFavorites = v => store('fl_favorites', v);
+
+// ---------- Supabase sync ----------
+async function syncFromSupabase() {
+  if (!sb) return;
+  try {
+    let r = await sb.from('products').select('*');
+    if (r.data) store('fl_products', r.data.map(p => ({id:p.id,name:p.name,category:p.category,price:p.price,county:p.county,availability:p.availability,desc:p.description,image:p.image,farmer:p.farmer})));
+    r = await sb.from('bookings').select('*');
+    if (r.data) store('fl_bookings', r.data.map(b => ({id:b.id,product:b.product,farmer:b.farmer,qty:b.qty,date:b.date,status:b.status,by:b.buyer,phone:b.phone})));
+    r = await sb.from('messages').select('*');
+    if (r.data) store('fl_messages', r.data.map(m => ({id:m.id,from:m.sender,to:m.receiver,text:m.text,date:m.date})));
+    r = await sb.from('ledger').select('*');
+    if (r.data) store('fl_ledger', r.data.map(e => ({id:e.id,date:e.date,type:e.type,desc:e.description,amount:e.amount})));
+    refreshAll();
+  } catch(e) { console.warn('syncFromSupabase failed', e); }
+}
+async function syncTable(table, arr, mapper) {
+  if (!sb) return;
+  try {
+    await sb.from(table).delete().neq('id', 0);
+    if (arr.length) await sb.from(table).insert(arr.map(mapper));
+  } catch(e) { console.warn('syncTable failed for ' + table, e); }
+}
+
+// ---------- init ----------
+function fillCounties() {
+  ['fCounty','pCounty','bCounty','bLocation'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = (id==='bLocation' ? '<option value="">All Locations</option>' : '') + COUNTIES.map(c=>`<option>${c}</option>`).join('');
+  });
+}
+fillCounties();
+
+function enterRole(role) {
+  currentRole = role;
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  ['farmerView','buyerView','institutionView'].forEach(v=>document.getElementById(v).classList.add('hidden'));
+  document.getElementById(role+'View').classList.remove('hidden');
+  document.getElementById('roleLabel').innerHTML = `<button class="secondary" onclick="backToLanding()">← Switch Role</button>`;
+  buildNav(role);
+  refreshAll();
+}
+function backToLanding() {
+  currentRole = null;
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('landing').classList.remove('hidden');
+  document.getElementById('roleLabel').innerHTML = '';
+  localStorage.removeItem('fl_current');
+}
+
+// ---------- authentication ----------
+const users = () => read('fl_users', { farmer: [], buyer: [], institution: [] });
+const setUsers = v => store('fl_users', v);
+let authRole = 'farmer';
+function openAuth(role) {
+  authRole = role;
+  document.getElementById('authTitle').textContent = `${role.charAt(0).toUpperCase() + role.slice(1)} — Login / Register`;
+  document.getElementById('authMsg').textContent = '';
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authPass').value = '';
+  document.getElementById('authModal').classList.remove('hidden');
+}
+function validateAuthInput(role, email, pass) {
+  if (!email || !pass) return 'Email and password are required.';
+  if (role === 'farmer') {
+    if (!email.toLowerCase().includes('@farmer.email.com')) return 'Farmer email must be like name@farmer.email.com';
+  } else {
+    if (!email.includes('@') || !email.includes('.')) return 'Enter a valid email address.';
+  }
+  if (pass.length < 4) return 'Password must be at least 4 characters.';
+  return null;
+}
+async function authRegister() {
+  const role = authRole;
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value;
+  const err = validateAuthInput(role, email, pass);
+  if (err) { document.getElementById('authMsg').textContent = err; return; }
+  const u = users();
+  if (u[role].some(x => x.email.toLowerCase() === email.toLowerCase())) {
+    document.getElementById('authMsg').textContent = 'This email is already registered. Please login.';
+    return;
+  }
+  u[role].push({ email, pass });
+  setUsers(u);
+  // record in Supabase
+  if (sb) { try { await sb.from('users').insert([{ role, email, password: pass }]); } catch(e) { console.warn('users insert failed', e); } }
+  closeModal('authModal');
+  enterRole(role);
+  store('fl_current', { role, email });
+  alert(`Welcome! Registered and logged in as ${email}.`);
+}
+async function authLogin() {
+  const role = authRole;
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value;
+  const err = validateAuthInput(role, email, pass);
+  if (err) { document.getElementById('authMsg').textContent = err; return; }
+  // try Supabase first
+  if (sb) {
+    try {
+      let r = await sb.from('users').select('*').eq('email', email).eq('role', role).eq('password', pass);
+      if (r.data && r.data.length > 0) {
+        closeModal('authModal'); enterRole(role); store('fl_current', { role, email });
+        alert(`Welcome! Logged in as ${email}.`); return;
+      }
+    } catch(e) { console.warn('supabase login check failed', e); }
+  }
+  // fallback to local
+  const u = users();
+  const found = u[role].find(x => x.email.toLowerCase() === email.toLowerCase() && x.pass === pass);
+  if (!found) { document.getElementById('authMsg').textContent = 'Invalid email or password.'; return; }
+  closeModal('authModal');
+  enterRole(role);
+  store('fl_current', { role, email });
+  alert(`Welcome! Logged in as ${email}.`);
+}
+
+function buildNav(role) {
+  const tabs = role === 'farmer'
+    ? [['f-dashboard','Dashboard'],['f-products','My Products'],['f-ledger','Farmer Ledger'],['f-bookings','Bookings'],['f-messages','Messages'],['f-savings','💰 Savings'],['f-profile','Profile']]
+    : role === 'buyer'
+    ? [['b-market','Marketplace'],['b-favorites','Favorites'],['b-bookings','My Bookings'],['b-inquiries','My Inquiries'],['b-profile','Profile']]
+    : [['i-book','Bulk Booking'],['i-bookings','My Bookings'],['i-messages','Messages'],['i-profile','Profile']];
+  const nav = document.getElementById('navTabs');
+  nav.innerHTML = tabs.map((t,i)=>`<button ${i===0?'class="active"':''} onclick="showTab('${t[0]}', this)">${t[1]}</button>`).join('');
+  // show first tab content
+  document.querySelectorAll('#'+role+'View > .card').forEach(c => c.classList.add('hidden'));
+  document.getElementById(tabs[0][0]).classList.remove('hidden');
+}
+function showTab(id, btn) {
+  document.querySelectorAll('#'+currentRole+'View > .card').forEach(c => c.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  document.querySelectorAll('#navTabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  refreshAll();
+}
+
+// ---------- products ----------
+function openAddProduct() {
+  document.getElementById('editId').value = '';
+  document.getElementById('productModalTitle').textContent = 'Add New Product';
+  ['pName','pPrice','pDesc'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('productModal').classList.remove('hidden');
+}
+function editProduct(id) {
+  const p = products().find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('productModalTitle').textContent = 'Edit Product';
+  document.getElementById('pName').value = p.name;
+  document.getElementById('pCategory').value = p.category;
+  document.getElementById('pPrice').value = p.price;
+  document.getElementById('pCounty').value = p.county;
+  document.getElementById('pAvail').value = p.availability;
+  document.getElementById('pDesc').value = p.desc || '';
+  document.getElementById('productModal').classList.remove('hidden');
+}
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+function addProduct() {
+  const name = document.getElementById('pName').value.trim();
+  const price = document.getElementById('pPrice').value;
+  if (!name || !price) return alert('Name and price required');
+  const file = document.getElementById('pImage').files[0];
+  const editId = document.getElementById('editId').value;
+  const arr = products();
+  const finish = (img) => {
+    if (editId) {
+      const p = arr.find(x => x.id == editId);
+      if (p) {
+        p.name = name; p.category = document.getElementById('pCategory').value; p.price = +price;
+        p.county = document.getElementById('pCounty').value; p.availability = document.getElementById('pAvail').value;
+        p.desc = document.getElementById('pDesc').value;
+        if (img) p.image = img;
+      }
+      setProducts(arr);
+      closeModal('productModal'); refreshAll(); alert('Product updated!');
+      return;
+    }
+    const p = { id: Date.now(), name, category: document.getElementById('pCategory').value, price: +price,
+      county: document.getElementById('pCounty').value, availability: document.getElementById('pAvail').value,
+      desc: document.getElementById('pDesc').value, image: img, farmer: 'Farmer' };
+    arr.push(p); setProducts(arr);
+    closeModal('productModal'); refreshAll();
+    alert('Product added!');
+  };
+  if (file) {
+    const r = new FileReader();
+    r.onload = e => {
+      const image = new Image();
+      image.onload = () => {
+        const max = 500;
+        let w = image.width, h = image.height;
+        if (w > max) { h = Math.round(h * max / w); w = max; }
+        if (h > max) { w = Math.round(w * max / h); h = max; }
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(image, 0, 0, w, h);
+        try { finish(c.toDataURL('image/jpeg', 0.7)); } catch (err) { finish(''); }
+      };
+      image.onerror = () => finish('');
+      image.src = e.target.result;
+    };
+    r.onerror = () => finish('');
+    r.readAsDataURL(file);
+  } else finish('');
+}
+
+function deleteProduct(id) { setProducts(products().filter(p=>p.id!==id)); refreshAll(); }
+
+// ---------- savings ----------
+function openSavingsEntry() { document.getElementById('savingsModal').classList.remove('hidden'); }
+function addSavingsEntry() {
+  const name = document.getElementById('sName').value.trim();
+  const amount = +document.getElementById('sAmount').value;
+  if (!name || !amount) return alert('Name and amount required');
+  const arr = savings(); arr.push({ id: Date.now(), date: new Date().toLocaleDateString(), name, amount }); setSavings(arr);
+  closeModal('savingsModal'); renderSavings();
+  document.getElementById('sName').value = ''; document.getElementById('sAmount').value = '';
+}
+function renderSavings() {
+  const arr = savings();
+  document.getElementById('totalSavings').textContent = 'KSh ' + arr.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('savingsRows').innerHTML = arr.map(e => `<tr><td>${e.date}</td><td>${e.name}</td><td>KSh ${e.amount}</td></tr>`).join('') || `<tr><td colspan="3">No savings yet.</td></tr>`;
+}
+
+// ---------- analytics ----------
+let cropChart, soldChart, expenseChart;
+function renderAnalytics() {
+  // income by product (best/poor crop)
+  const incomeByProduct = {};
+  const productsArr = products();
+  productsArr.forEach(p => incomeByProduct[p.name] = 0);
+  ledger().filter(e => e.type === 'Income').forEach(e => {
+    const prod = productsArr.find(p => e.desc.toLowerCase().includes(p.name.toLowerCase()));
+    if (prod) incomeByProduct[prod.name] += e.amount;
+  });
+  const cropLabels = Object.keys(incomeByProduct);
+  const cropValues = Object.values(incomeByProduct);
+
+  // sold count by product (best/poor sold)
+  const soldBy = {};
+  bookings().filter(b => b.status === 'Confirmed').forEach(b => { soldBy[b.product] = (soldBy[b.product]||0) + 1; });
+  const soldLabels = Object.keys(soldBy);
+  const soldValues = Object.values(soldBy);
+
+  // monthly expenses
+  const expByMonth = {};
+  ledger().filter(e => e.type === 'Expense').forEach(e => {
+    const parts = e.date.split('/');
+    const key = (parts.length >= 3) ? `${parts[1]}/${parts[2]}` : e.date;
+    expByMonth[key] = (expByMonth[key]||0) + e.amount;
+  });
+  const expLabels = Object.keys(expByMonth);
+  const expValues = Object.values(expByMonth);
+
+  if (!window.Chart) { document.getElementById('cropChart').parentElement.innerHTML = '<p>Chart library not loaded. Check internet connection.</p>'; return; }
+  // destroy old charts
+  [cropChart, soldChart, expenseChart].forEach(c => c && c.destroy());
+  cropChart = new Chart(document.getElementById('cropChart'), { type: 'pie', data: { labels: cropLabels, datasets: [{ data: cropValues, backgroundColor: ['#2e7d32','#ef6c00','#0288d1','#d81b60','#7b1fa2','#f9a825','#00897b','#c62828'] }] }, options: { responsive: true, maintainAspectRatio: true } });
+  soldChart = new Chart(document.getElementById('soldChart'), { type: 'bar', data: { labels: soldLabels, datasets: [{ label: 'Sold (count)', data: soldValues, backgroundColor: ['#f57c00','#2e7d32','#0288d1','#c62828','#7b1fa2','#d81b60'] }] }, options: { responsive: true, maintainAspectRatio: true } });
+  expenseChart = new Chart(document.getElementById('expenseChart'), { type: 'line', data: { labels: expLabels, datasets: [{ label: 'Expenses (KSh)', data: expValues, borderColor: '#c62828', backgroundColor: 'rgba(198,40,40,0.2)', fill: true, borderWidth: 3, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: true } });
+}
+
+// ---------- ledger ----------
+function openLedgerEntry() { document.getElementById('ledgerModal').classList.remove('hidden'); }
+function addLedgerEntry() {
+  const type = document.getElementById('lType').value;
+  const desc = document.getElementById('lDesc').value.trim();
+  const amount = +document.getElementById('lAmount').value;
+  if (!desc || !amount) return alert('Description and amount required');
+  const arr = ledger(); arr.push({ id: Date.now(), date: new Date().toLocaleDateString(), type, desc, amount }); setLedger(arr);
+  closeModal('ledgerModal'); refreshAll();
+}
+function renderLedger() {
+  const arr = ledger();
+  const income = arr.filter(e=>e.type==='Income').reduce((s,e)=>s+e.amount,0);
+  const expense = arr.filter(e=>e.type==='Expense').reduce((s,e)=>s+e.amount,0);
+  document.getElementById('ledgerIncome').textContent = 'KSh ' + income;
+  document.getElementById('ledgerExpense').textContent = 'KSh ' + expense;
+  const net = income - expense;
+  const netEl = document.getElementById('ledgerNet');
+  netEl.textContent = 'KSh ' + Math.abs(net) + (net >= 0 ? ' ✅ Profit' : ' ❌ Loss');
+  netEl.className = 'num ' + (net >= 0 ? 'profit' : 'loss');
+  document.getElementById('ledgerRows').innerHTML = arr.map(e =>
+    `<tr><td>${e.date}</td><td>${e.type}</td><td>${e.desc}</td><td class="${e.type==='Income'?'profit':'loss'}">KSh ${e.amount}</td></tr>`).join('') ||
+    `<tr><td colspan="4">No entries yet.</td></tr>`;
+  document.getElementById('fRevenue').textContent = 'KSh ' + income;
+}
+
+// ---------- messages ----------
+function openMsg(farmer, productId) {
+  msgContext = { farmer, productId };
+  document.getElementById('msgTitle').textContent = `Message ${farmer} about product`;
+  document.getElementById('msgModal').classList.remove('hidden');
+}
+function sendMessage() {
+  const text = document.getElementById('msgText').value.trim();
+  if (!text) return;
+  const arr = messages();
+  arr.push({ id: Date.now(), from: currentRole, to: currentRole==='farmer' ? 'buyer' : 'farmer', text, date: new Date().toLocaleString() });
+  setMessages(arr);
+  document.getElementById('msgText').value = '';
+  closeModal('msgModal'); refreshAll();
+}
+function renderMessages() {
+  const arr = messages();
+  const list = arr.filter(m => m.from === currentRole || m.to === currentRole);
+  const el = document.getElementById(currentRole==='farmer'?'fMessagesList':currentRole==='buyer'?'bInquiriesList':'iMessagesList');
+  if (el) el.innerHTML = list.length ? list.map(m => `<div class="msg ${m.from===currentRole?'from-me':''}"><b>${m.from===currentRole?'You':m.from}</b> → ${m.to}<br>${m.text}<br><small>${m.date}</small></div>`).join('') : '<p>No messages yet.</p>';
+  document.getElementById('fMsgs').textContent = arr.filter(m=>m.to==='farmer').length;
+}
+
+// ---------- bookings ----------
+function buyerBook() {
+  if (!bookContext) return;
+  const qty = +document.getElementById('bkQty').value;
+  const date = document.getElementById('bkDate').value;
+  const phone = document.getElementById('bkPhone').value.trim();
+  if (!qty || !date) return alert('Quantity and date required');
+  if (!phone) return alert('Please enter your phone number for the payment prompt.');
+  if (!confirm(`A payment prompt of KSh ${bookContext.price * qty} will be sent to ${phone} for ${bookContext.name} (${qty} kg) on ${date}. Proceed?`)) return;
+  const arr = bookings();
+  arr.push({ id: Date.now(), product: bookContext.name, farmer: bookContext.farmer, qty, date, status: 'Pending', by: 'Buyer', phone });
+  setBookings(arr);
+  closeModal('bookModal'); refreshAll(); alert('Booking request sent!');
+}
+function buyerBuy() {
+  if (!bookContext) return;
+  const qty = +document.getElementById('bkQty').value;
+  const phone = document.getElementById('bkPhone').value.trim();
+  if (!phone) return alert('Please enter your phone number for the payment prompt.');
+  if (!confirm(`A payment prompt of KSh ${bookContext.price * qty} will be sent to ${phone} for ${bookContext.name} (${qty} kg). Proceed with purchase?`)) return;
+  const arr = bookings();
+  arr.push({ id: Date.now(), product: bookContext.name, farmer: bookContext.farmer, qty, date: new Date().toLocaleDateString(), status: 'Confirmed', by: 'Buyer', phone });
+  setBookings(arr);
+  const l = ledger(); l.push({ id: Date.now(), date: new Date().toLocaleDateString(), type: 'Income', desc: `Sale of ${bookContext.name} x${qty}kg`, amount: bookContext.price * qty }); setLedger(l);
+  closeModal('bookModal'); refreshAll(); alert('Purchase recorded! Income added to farmer ledger.');
+}
+function institutionBook() {
+  const name = document.getElementById('iName').value.trim();
+  const type = document.getElementById('iType').value;
+  const productId = document.getElementById('iProduct').value;
+  const qty = +document.getElementById('iQty').value;
+  const date = document.getElementById('iDate').value;
+  if (!name || !productId || !qty || !date) return alert('All fields required');
+  const phone = document.getElementById('iPhone').value.trim();
+  if (!phone) return alert('Please enter your phone number for the payment prompt.');
+  if (!confirm(`A payment prompt will be sent to ${phone} for the bulk booking of ${qty} kg on ${date}. Proceed?`)) return;
+  const p = products().find(x => x.id == productId);
+  const arr = bookings();
+  arr.push({ id: Date.now(), product: p ? p.name : 'Unknown', farmer: p ? p.farmer : 'Farmer', qty, date, status: 'Pending', by: `${name} (${type})`, phone });
+  setBookings(arr);
+  alert('Bulk booking request sent!');
+  document.getElementById('iName').value = ''; document.getElementById('iQty').value = 10;
+  refreshAll();
+}
+function confirmBooking(id) {
+  const arr = bookings(); const b = arr.find(x=>x.id===id);
+  if (b) { b.status = 'Confirmed'; setBookings(arr);
+    const p = products().find(x=>x.name===b.product);
+    const l = ledger(); l.push({ id: Date.now(), date: new Date().toLocaleDateString(), type: 'Income', desc: `Booking confirmed: ${b.product} x${b.qty}kg by ${b.by}`, amount: p ? p.price * b.qty : 0 }); setLedger(l);
+  }
+  refreshAll();
+}
+function cancelBooking(id) { const arr = bookings(); const b = arr.find(x=>x.id===id); if (b) { b.status='Cancelled'; setBookings(arr);} refreshAll(); }
+function renderBookings() {
+  const arr = bookings();
+  document.getElementById('fBookingRows').innerHTML = arr.map(b => `<tr><td>${b.product}</td><td>${b.by}</td><td>${b.qty}</td><td>${b.date}</td><td><span class="pill ${b.status.toLowerCase()}">${b.status}</span></td><td>${b.status==='Pending'?`<button onclick="confirmBooking(${b.id})">Confirm</button> <button class="danger" onclick="cancelBooking(${b.id})">Cancel</button>`:''}</td></tr>`).join('') || `<tr><td colspan="6">No bookings.</td></tr>`;
+  const bRows = arr.filter(b => b.by === 'Buyer');
+  document.getElementById('bBookingRows').innerHTML = bRows.map(b => `<tr><td>${b.product}</td><td>${b.qty}</td><td>${b.date}</td><td><span class="pill ${b.status.toLowerCase()}">${b.status}</span></td></tr>`).join('') || `<tr><td colspan="4">No bookings.</td></tr>`;
+  const iRows = arr.filter(b => b.by !== 'Buyer');
+  document.getElementById('iBookingRows').innerHTML = iRows.map(b => `<tr><td>${b.product}</td><td>${b.qty}</td><td>${b.date}</td><td><span class="pill ${b.status.toLowerCase()}">${b.status}</span></td></tr>`).join('') || `<tr><td colspan="4">No bookings.</td></tr>`;
+  document.getElementById('fBookings').textContent = arr.length;
+}
+
+// ---------- market / favorites ----------
+function renderMarket() {
+  const cat = document.getElementById('bCategory').value;
+  const loc = document.getElementById('bLocation').value;
+  const list = products().filter(p => (!cat || p.category===cat) && (!loc || p.county===loc));
+  document.getElementById('marketGrid').innerHTML = list.length ? list.map(p => `
+    <div class="card">
+      ${p.image ? `<img src="${p.image}" style="width:100%;height:200px;object-fit:contain;background:#f5f5f5;border-radius:8px">` : '<div style="height:200px;background:#e0e0e0;border-radius:8px;display:flex;align-items:center;justify-content:center">No image</div>'}
+      <h3>${p.name}</h3>
+      <p><b>KSh ${p.price}/kg</b> · ${p.category} · ${p.county}</p>
+      <p><span class="pill ${p.availability==='Available Now'?'available':'coming'}">${p.availability}</span></p>
+      <p style="font-size:13px;color:#607d8b">${p.desc||''}</p>
+      <button onclick="openBookModal(${p.id})">Buy / Book</button>
+      <button class="secondary" onclick="openMsg('${p.farmer}', ${p.id})">Contact Farmer</button>
+      <button class="secondary" onclick="toggleFav(${p.id})">Add to Favorites</button>
+    </div>`).join('') : '<p>No products found.</p>';
+  // institution product select
+  const sel = document.getElementById('iProduct');
+  sel.innerHTML = products().map(p=>`<option value="${p.id}">${p.name} — KSh ${p.price}/kg (${p.county})</option>`).join('');
+}
+function openBookModal(id) { bookContext = products().find(p=>p.id===id); document.getElementById('bookProductName').textContent = bookContext.name + ' — KSh ' + bookContext.price + '/kg'; document.getElementById('bookModal').classList.remove('hidden'); }
+function toggleFav(id) {
+  const arr = favorites();
+  const i = arr.indexOf(id);
+  if (i >= 0) arr.splice(i,1); else arr.push(id);
+  setFavorites(arr); renderMarket(); renderFavorites();
+}
+function renderFavorites() {
+  const arr = favorites();
+  const list = products().filter(p => arr.includes(p.id));
+  document.getElementById('favGrid').innerHTML = list.length ? list.map(p => `<div class="card"><h3>${p.name}</h3><p>KSh ${p.price}/kg · ${p.county}</p></div>`).join('') : '<p>No favorites yet.</p>';
+}
+
+// ---------- profile ----------
+function saveProfile(role) { alert('Profile saved for ' + role); }
+
+// ---------- farmer products table ----------
+function renderFarmerProducts() {
+  document.getElementById('fProductRows').innerHTML = products().map(p => `
+    <tr>
+      <td>${p.image?`<img class="thumb" src="${p.image}">`:'—'}</td>
+      <td>${p.name}</td><td>${p.category}</td><td>KSh ${p.price}</td><td>${p.county}</td>
+      <td><span class="pill ${p.availability==='Available Now'?'available':'coming'}">${p.availability}</span></td>
+      <td><button onclick="editProduct(${p.id})">Edit</button> <button class="danger" onclick="deleteProduct(${p.id})">Delete</button></td>
+    </tr>`).join('') || `<tr><td colspan="7">No products yet.</td></tr>`;
+  document.getElementById('fActive').textContent = products().filter(p=>p.availability==='Available Now').length;
+}
+
+function refreshAll() {
+  renderFarmerProducts(); renderLedger(); renderMessages();
+  renderBookings(); renderMarket(); renderFavorites(); renderSavings(); renderAnalytics();
+}
+
+// auto-login if previously logged in
+const cur = read('fl_current', null);
+if (cur && cur.role) { enterRole(cur.role); }
+syncFromSupabase();
+
+// seed sample ledger & bookings so charts are not empty
+if (ledger().length < 8) {
+  setLedger([
+    { id: 1, date: '1/8/2026', type: 'Income', desc: 'Sold Maize x10kg', amount: 600 },
+    { id: 2, date: '5/8/2026', type: 'Expense', desc: 'Fertilizer purchase', amount: 2000 },
+    { id: 3, date: '10/8/2026', type: 'Income', desc: 'Sold Tomatoes x5kg', amount: 400 },
+    { id: 4, date: '12/8/2026', type: 'Income', desc: 'Sold Bananas x8kg', amount: 720 },
+    { id: 5, date: '20/8/2026', type: 'Expense', desc: 'Transport', amount: 800 },
+    { id: 6, date: '25/8/2026', type: 'Income', desc: 'Sold Potatoes x20kg', amount: 1000 },
+    { id: 7, date: '1/9/2026', type: 'Expense', desc: 'Seed purchase', amount: 1500 },
+    { id: 8, date: '10/9/2026', type: 'Income', desc: 'Sold Avocado x15kg', amount: 1800 },
+    { id: 9, date: '15/9/2026', type: 'Expense', desc: 'Labour wages', amount: 2500 },
+    { id: 10, date: '20/9/2026', type: 'Income', desc: 'Sold Maize x8kg', amount: 480 },
+    { id: 11, date: '1/10/2026', type: 'Income', desc: 'Sold Mangoes x12kg', amount: 1200 },
+    { id: 12, date: '5/10/2026', type: 'Expense', desc: 'Pesticides', amount: 900 }
+  ]);
+}
+if (bookings().length < 5) {
+  setBookings([
+    { id: 1, product: 'Maize', farmer: 'Farmer', qty: 10, date: '1/8/2026', status: 'Confirmed', by: 'Buyer', phone: '0712345678' },
+    { id: 2, product: 'Tomatoes', farmer: 'Farmer', qty: 5, date: '1/9/2026', status: 'Confirmed', by: 'Buyer', phone: '0712345678' },
+    { id: 3, product: 'Bananas', farmer: 'Farmer', qty: 8, date: '10/9/2026', status: 'Confirmed', by: 'Institution', phone: '0712345679' },
+    { id: 4, product: 'Potatoes', farmer: 'Farmer', qty: 20, date: '15/9/2026', status: 'Confirmed', by: 'Buyer', phone: '0712345678' },
+    { id: 5, product: 'Avocado', farmer: 'Farmer', qty: 15, date: '20/9/2026', status: 'Confirmed', by: 'Institution', phone: '0712345679' },
+    { id: 6, product: 'Maize', farmer: 'Farmer', qty: 8, date: '1/10/2026', status: 'Pending', by: 'Buyer', phone: '0712345678' }
+  ]);
+}
+</script>
+</body>
+</html>
